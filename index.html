@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboards in Chat — Elastic Agent Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0D1117;
+    --bg2: #161B22;
+    --bg3: #1C2333;
+    --teal: #00BFB3;
+    --teal-dim: rgba(0,191,179,0.15);
+    --teal-glow: rgba(0,191,179,0.4);
+    --pink: #F04E98;
+    --amber: #FEC514;
+    --blue: #4EAFF0;
+    --text: #E6EDF3;
+    --text-muted: #7D8590;
+    --border: rgba(255,255,255,0.08);
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  /* ── SLIDE CONTAINER ── */
+  .deck {
+    width: 100%;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 80px 100px;
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .slide.active {
+    position: relative;
+    inset: auto;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+  }
+
+  /* ── SLIDE NUMBER ── */
+  .slide-num {
+    position: fixed;
+    bottom: 28px;
+    right: 36px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--teal);
+    opacity: 0.5;
+    letter-spacing: 0.1em;
+    z-index: 100;
+  }
+
+  /* ── NAV ── */
+  .nav {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 100;
+    align-items: center;
+  }
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    border: 1px solid var(--text-muted);
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .nav-dot.active {
+    background: var(--teal);
+    border-color: var(--teal);
+    box-shadow: 0 0 8px var(--teal-glow);
+  }
+  .nav-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+    margin: 0 6px;
+  }
+  .nav-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+  /* ── TYPOGRAPHY ── */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    color: var(--teal);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+  h2 {
+    font-size: clamp(24px, 3vw, 38px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 32px;
+  }
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--teal);
+    margin-bottom: 8px;
+    font-family: var(--font-mono);
+  }
+  .accent { color: var(--teal); }
+  .accent-pink { color: var(--pink); }
+  .accent-amber { color: var(--amber); }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+  }
+  .card-teal { border-color: var(--teal); box-shadow: 0 0 20px rgba(0,191,179,0.1); }
+
+  /* ── TABLES ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--teal);
+    padding: 10px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--teal-dim);
+    background: var(--bg3);
+  }
+  td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+  }
+  .tag-teal { background: var(--teal-dim); color: var(--teal); }
+  .tag-pink { background: rgba(240,78,152,0.15); color: var(--pink); }
+  .tag-amber { background: rgba(254,197,20,0.15); color: var(--amber); }
+  .tag-blue { background: rgba(78,175,240,0.15); color: var(--blue); }
+
+  /* ════════════════════════════════
+     SLIDE 1 — TITLE
+  ════════════════════════════════ */
+  #s1 { justify-content: center; }
+  .log-stream {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    opacity: 0.07;
+    pointer-events: none;
+  }
+  .log-line {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--teal);
+    white-space: nowrap;
+    line-height: 1.8;
+    animation: scrollUp 20s linear infinite;
+  }
+  @keyframes scrollUp {
+    from { transform: translateY(0); }
+    to { transform: translateY(-50%); }
+  }
+  .title-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    max-width: 800px;
+  }
+  .title-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: var(--teal-dim);
+    border: 1px solid rgba(0,191,179,0.3);
+    border-radius: 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--teal);
+    letter-spacing: 0.08em;
+    margin-bottom: 24px;
+  }
+  .title-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--teal);
+    border-radius: 50%;
+    animation: pulse 1.5s ease infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; transform: scale(1); }
+    50% { opacity:0.4; transform: scale(0.7); }
+  }
+  .title-sub {
+    font-size: 16px;
+    color: var(--text-muted);
+    margin-top: 16px;
+    font-weight: 400;
+    line-height: 1.6;
+  }
+  .title-meta {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin-top: 40px;
+  }
+  .meta-item {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .meta-item span { color: var(--teal); }
+
+  /* ════════════════════════════════
+     SLIDE 2 — FLOW (ANIMATED)
+  ════════════════════════════════ */
+  #s2 { justify-content: flex-start; padding-top: 50px; }
+  .flow-wrap {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .flow-step {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    gap: 16px;
+    opacity: 0;
+    transform: translateX(-16px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .flow-step.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  .flow-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 32px;
+    flex-shrink: 0;
+  }
+  .flow-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--teal);
+    box-shadow: 0 0 12px var(--teal-glow);
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+  .flow-line {
+    flex: 1;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--teal), var(--teal-dim));
+    margin-top: 4px;
+  }
+  .flow-body {
+    flex: 1;
+    padding-bottom: 20px;
+  }
+  .flow-title {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--teal);
+    margin-bottom: 4px;
+  }
+  .flow-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .flow-code {
+    margin-top: 8px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--teal);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    white-space: pre;
+    overflow: hidden;
+  }
+  .flow-code .k { color: var(--pink); }
+  .flow-code .s { color: var(--amber); }
+  .flow-code .v { color: var(--blue); }
+  .flow-nested {
+    margin-top: 12px;
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .flow-nested-step {
+    flex: 1;
+    position: relative;
+    padding: 9px 10px;
+    background: rgba(254,197,20,0.06);
+    border: 1px solid rgba(254,197,20,0.18);
+    border-radius: 6px;
+  }
+  .flow-nested-step:not(:last-child)::after {
+    content: '→';
+    position: absolute;
+    right: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--amber);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    z-index: 2;
+  }
+  .flow-nested-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--amber);
+    margin-bottom: 3px;
+  }
+  .flow-nested-copy {
+    font-size: 10px;
+    color: var(--text-muted);
+    line-height: 1.35;
+  }
+
+  /* ════════════════════════════════
+     SLIDE 3 — BUILDING BLOCKS
+  ════════════════════════════════ */
+  .blocks-grid {
+    display: flex;
+    gap: 0;
+    width: 100%;
+    max-width: 900px;
+    align-items: stretch;
+  }
+  .block-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+  }
+  .block-item:not(:last-child)::after {
+    content: '→';
+    position: absolute;
+    right: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--teal);
+    font-size: 18px;
+    z-index: 2;
+  }
+  .block-icon {
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+  }
+  .block-icon.teal { border-color: var(--teal); background: var(--teal-dim); }
+  .block-icon.pink { border-color: var(--pink); background: rgba(240,78,152,0.12); }
+  .block-icon.amber { border-color: var(--amber); background: rgba(254,197,20,0.12); }
+  .block-icon.blue { border-color: var(--blue); background: rgba(78,175,240,0.12); }
+  .block-icon.purple { border-color: #B197FC; background: rgba(177,151,252,0.12); }
+  .block-name {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .block-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    padding: 0 8px;
+  }
+  .blocks-detail {
+    margin-top: 32px;
+    width: 100%;
+    max-width: 900px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 24px;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    text-align: center;
+  }
+  .blocks-detail strong { color: var(--text); }
+
+  /* ════════════════════════════════
+     SLIDE 4 — CAPABILITY MATRIX
+  ════════════════════════════════ */
+  .check { color: var(--teal); font-size: 14px; }
+
+  /* ════════════════════════════════
+     SLIDE 5 — EVALS
+  ════════════════════════════════ */
+  .eval-bar-wrap { margin-top: 4px; display: flex; align-items: center; gap: 10px; }
+  .eval-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--teal);
+    transition: width 1s ease 0.5s;
+  }
+
+  /* ════════════════════════════════
+     SLIDE 6 — CHALLENGES
+  ════════════════════════════════ */
+  .challenges-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    width: 100%;
+    max-width: 920px;
+  }
+  .dep-list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .dep-item {
+    display: flex;
+    gap: 10px;
+    padding: 9px 14px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-size: 12px;
+    color: var(--text-muted);
+    align-items: flex-start;
+    line-height: 1.4;
+  }
+  .dep-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ════════════════════════════════
+     SLIDE 7 — WHAT'S NEXT
+  ════════════════════════════════ */
+  #s7 { justify-content: center; }
+  .roadmap-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 900px;
+  }
+  .roadmap-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .roadmap-card:hover {
+    border-color: var(--teal);
+    transform: translateY(-2px);
+  }
+  .roadmap-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .roadmap-label::before {
+    content: '';
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: var(--teal);
+  }
+  .roadmap-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .roadmap-item {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex; align-items: flex-start; gap: 7px;
+    line-height: 1.4;
+  }
+  .roadmap-item::before {
+    content: '›';
+    color: var(--teal);
+    flex-shrink: 0;
+    font-size: 14px;
+    line-height: 1.3;
+  }
+  .outro {
+    margin-top: 28px;
+    max-width: 900px;
+    width: 100%;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+
+  /* ── SHARED LAYOUT HELPERS ── */
+  .full-w { width: 100%; max-width: 960px; }
+  .slide-header { width: 100%; max-width: 960px; margin-bottom: 28px; }
+  .slide-header h2 { margin-bottom: 0; }
+
+  /* Scrollable content helper */
+  .scroll-content {
+    overflow-y: auto;
+    width: 100%;
+    max-height: calc(100vh - 180px);
+    scrollbar-width: thin;
+    scrollbar-color: var(--teal-dim) transparent;
+  }
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+  <!-- ══════════════════════════════════════
+       SLIDE 1 — TITLE
+  ══════════════════════════════════════ -->
+  <div class="slide" id="s1">
+    <div class="log-stream" id="logStream"></div>
+    <div class="title-content">
+      <div class="title-badge">ELASTIC AGENT BUILDER · KIBANA</div>
+      <h1>Dashboards<br><span class="accent">in Chat</span></h1>
+      <p class="title-sub">How AI-powered dashboard generation works under the hood —<br>from natural language to rendered Kibana artifacts.</p>
+      <div class="title-meta">
+        <div class="meta-item"><span>Stack</span> Agent Builder · ES|QL · Lens</div>
+        <div class="meta-item"><span>Surface</span> Chat · Canvas · Dashboard App</div>
+        <div class="meta-item"><span>Slides</span> 7</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SLIDE 2 — FLOW (ANIMATED)
+  ══════════════════════════════════════ -->
+  <div class="slide" id="s2">
+    <div class="slide-header">
+      <div class="eyebrow">01 · Under the Hood</div>
+      <h2>The Dashboard Generation Flow</h2>
+    </div>
+    <div class="flow-wrap" id="flowWrap">
+      <div class="flow-step" id="f0">
+        <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+        <div class="flow-body">
+          <div class="flow-title">User Prompt</div>
+          <div class="flow-desc">"Create a dashboard to monitor my logs data" — the conversation starts with a natural-language request.</div>
+        </div>
+      </div>
+      <div class="flow-step" id="f1">
+        <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+        <div class="flow-body">
+          <div class="flow-title">Agent Determines a Skill Is Needed</div>
+          <div class="flow-desc">The agent routes the request to the dashboard skill because a dashboard need is identified.</div>
+        </div>
+      </div>
+      <div class="flow-step" id="f2">
+        <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+        <div class="flow-body">
+          <div class="flow-title">Skill Is Read, Instructions Are Read</div>
+          <div class="flow-desc">The skill gives the agent dashboard creation instructions, design guidance, data-discovery steps, and the requirement to use <code style="color:var(--teal);font-family:var(--font-mono);font-size:11px">manage_dashboard</code>.</div>
+        </div>
+      </div>
+      <div class="flow-step" id="f3">
+        <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+        <div class="flow-body">
+          <div class="flow-title">Skill Runs: Data Check + Operations</div>
+          <div class="flow-desc">The agent checks indices and data, follows the instructions to plan the dashboard, then defines the tool params. The important param is mostly <strong style="color:var(--teal)">operations</strong> — the composed dashboard sections and panels.</div>
+          <div class="flow-code"><span class="k">"operations"</span>: [
+  { <span class="k">"operation"</span>: <span class="s">"set_metadata"</span>, <span class="k">"title"</span>: <span class="s">"Checkout latency"</span> },
+  { <span class="k">"operation"</span>: <span class="s">"add_section"</span>, <span class="k">"panels"</span>: [
+    { <span class="k">"query"</span>: <span class="s">"p95 checkout latency over 24h"</span>, <span class="k">"chartType"</span>: <span class="v">"xy"</span> },
+    { <span class="k">"query"</span>: <span class="s">"error rate by region"</span>, <span class="k">"chartType"</span>: <span class="v">"metric"</span> }
+  ]}
+]</div>
+        </div>
+      </div>
+      <div class="flow-step" id="f4">
+        <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+        <div class="flow-body">
+          <div class="flow-title">manage_dashboard Tool Runs</div>
+          <div class="flow-desc">The tool receives the composed operations and executes them</div>
+          <div class="flow-nested">
+            <div class="flow-nested-step">
+              <div class="flow-nested-label">Inside</div>
+              <div class="flow-nested-copy">Visualizations are generated</div>
+            </div>
+            <div class="flow-nested-step">
+              <div class="flow-nested-label">generate_esql</div>
+              <div class="flow-nested-copy">ES|QL is produced for each panel</div>
+            </div>
+            <div class="flow-nested-step">
+              <div class="flow-nested-label">Lens config</div>
+              <div class="flow-nested-copy">Lens API schema shapes the panel config</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flow-step" id="f5">
+        <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+        <div class="flow-body">
+          <div class="flow-title">Dashboard Attachment Created</div>
+          <div class="flow-desc">Outside the tool's internal generation loop, the completed dashboard attachment is created and stored for the conversation.</div>
+        </div>
+      </div>
+      <div class="flow-step" id="f6">
+        <div class="flow-left"><div class="flow-dot"></div></div>
+        <div class="flow-body">
+          <div class="flow-title">Conversation Continues + Preview Renders</div>
+          <div class="flow-desc">The agent keeps the conversation going and may include an attachment tag. The frontend renders that tag as defined, showing the dashboard preview so the user can edit, save, or iterate.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SLIDE 3 — BUILDING BLOCKS
+  ══════════════════════════════════════ -->
+  <div class="slide" id="s3">
+    <div class="slide-header">
+      <div class="eyebrow">02 · Architecture</div>
+      <h2>Agent Builder Building Blocks</h2>
+    </div>
+    <div class="blocks-grid">
+      <div class="block-item">
+        <div class="block-icon teal">🧭</div>
+        <div class="block-name">Skill</div>
+        <div class="block-desc">Guidance & routing. Follows instructions to create a dashboard</div>
+      </div>
+      <div class="block-item">
+        <div class="block-icon blue">⚙️</div>
+        <div class="block-name">Tools</div>
+        <div class="block-desc">Execute application operations needed to create a dashboard — manage_dashboard, generate_esql, vis generation.</div>
+      </div>
+      <div class="block-item">
+        <div class="block-icon amber">📎</div>
+        <div class="block-name">Attachment</div>
+        <div class="block-desc">Stores the work product. Dashboard API state persists across conversation turns.</div>
+      </div>
+      <div class="block-item">
+        <div class="block-icon pink">🖥️</div>
+        <div class="block-name">Renderer (e.g. renderCanvasContent)</div>
+        <div class="block-desc">Presents artifacts in chat, canvas, and the Kibana Dashboard app.</div>
+      </div>
+      <div class="block-item">
+        <div class="block-icon purple">✏️</div>
+        <div class="block-name">User Edits</div>
+        <div class="block-desc">Manipulate the artifact inside or outside the agent — iterate, save, refine.</div>
+      </div>
+    </div>
+    <div class="blocks-detail">
+      Skills provide guidance. Tools perform application operations. Attachments preserve generated artifacts.<br>
+      Renderers make artifacts usable across chat, canvas, and Kibana apps.
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SLIDE 4 — CAPABILITY MATRIX
+  ══════════════════════════════════════ -->
+  <div class="slide" id="s4">
+    <div class="slide-header">
+      <div class="eyebrow">03 · Why Dashboards?</div>
+      <h2>Capability Matrix</h2>
+    </div>
+    <div class="full-w">
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Capability</th>
+              <th>What Dashboards Exercise</th>
+              <th>Relevance to Future Kibana Apps</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="tag tag-teal">Intent Understanding</span></td>
+              <td>Determine whether a dashboard is the appropriate response</td>
+              <td>Any agent must understand user goals before acting</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-blue">Data Discovery</span></td>
+              <td>Inspect available indices and their mappings</td>
+              <td>Most Kibana features depend on knowing what data exists</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-amber">Query Generation</span></td>
+              <td>Generate valid ES|QL for every panel</td>
+              <td>Central to search, alerting, transforms, and more</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-pink">Visualization Generation</span></td>
+              <td>Produce Lens configs for charts and KPIs</td>
+              <td>Reusable for any visual output surface</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-teal">Design Guidance</span></td>
+              <td>Layout, sections, grid, KPI placement</td>
+              <td>Creates "lovable" outputs, not just functional ones</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-blue">Stateful Editing</span></td>
+              <td>Modify panels, sections, and layouts on follow-up</td>
+              <td>Multi-turn agentic workflows need durable state</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-amber">Persistence</span></td>
+              <td>Save dashboards to the Kibana app</td>
+              <td>Work products must survive beyond the conversation</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-pink">Rendering</span></td>
+              <td>Display across chat, canvas, and the Dashboard app</td>
+              <td>Reusable rendering patterns for all Kibana artifacts</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SLIDE 5 — EVALS
+  ══════════════════════════════════════ -->
+  <div class="slide" id="s5">
+    <div class="slide-header">
+      <div class="eyebrow">04 · Quality</div>
+      <h2>Quality &amp; Evals</h2>
+    </div>
+    <div class="full-w">
+      <div class="card" style="margin-bottom:20px;font-size:13px;color:var(--text-muted);line-height:1.6;border-color:rgba(0,191,179,0.2);">
+        One challenge with agent systems is dependence on LLM behaviour.
+        <strong style="color:var(--text)"> Evals turn subjective behaviour into measurable outcomes.</strong>
+      </div>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Layer</th>
+              <th>Example Evaluation</th>
+              <th>Signal Type</th>
+              <th>Confidence</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="tag tag-blue">Skill Routing</span></td>
+              <td>Did dashboard generation activate appropriately?</td>
+              <td>Binary pass/fail</td>
+              <td>
+                <div class="eval-bar-wrap"><div class="eval-bar" style="width:85%;background:var(--teal)"></div><span style="font-size:11px;font-family:var(--font-mono);color:var(--teal)">high</span></div>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-teal">Artifact Creation</span></td>
+              <td>Was an attachment created at all?</td>
+              <td>Binary pass/fail</td>
+              <td>
+                <div class="eval-bar-wrap"><div class="eval-bar" style="width:90%;background:var(--teal)"></div><span style="font-size:11px;font-family:var(--font-mono);color:var(--teal)">high</span></div>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-amber">Content Quality</span></td>
+              <td>Were expected sections generated?</td>
+              <td>Structural check</td>
+              <td>
+                <div class="eval-bar-wrap"><div class="eval-bar" style="width:72%;background:var(--amber)"></div><span style="font-size:11px;font-family:var(--font-mono);color:var(--amber)">medium</span></div>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-pink">Layout Quality</span></td>
+              <td>Does layout fit the dashboard grid?</td>
+              <td>Rule-based</td>
+              <td>
+                <div class="eval-bar-wrap"><div class="eval-bar" style="width:65%;background:var(--pink)"></div><span style="font-size:11px;font-family:var(--font-mono);color:var(--pink)">medium</span></div>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-blue">End Result</span></td>
+              <td>Is the dashboard actually useful?</td>
+              <td>LLM judge / human</td>
+              <td>
+                <div class="eval-bar-wrap"><div class="eval-bar" style="width:45%;background:var(--blue)"></div><span style="font-size:11px;font-family:var(--font-mono);color:var(--blue)">evolving</span></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:16px;font-family:var(--font-mono);font-size:11px;color:var(--teal);text-align:right;">
+        KEY POINT: Evals are our mitigation for LLM dependency.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SLIDE 6 — CHALLENGES
+  ══════════════════════════════════════ -->
+  <div class="slide" id="s6">
+    <div class="slide-header">
+      <div class="eyebrow">05 · Dependencies</div>
+      <h2>Dependencies &amp; Challenges</h2>
+    </div>
+    <div class="challenges-wrap">
+      <div>
+        <h3 style="margin-bottom:12px;">Hard Dependencies</h3>
+        <div class="dep-list">
+          <div class="dep-item"><div class="dep-icon">🧱</div>Agent Builder framework — skills, tools, attachments, rendering lifecycle</div>
+          <div class="dep-item"><div class="dep-icon">📐</div>Dashboard and visualization public APIs / schemas</div>
+          <div class="dep-item"><div class="dep-icon">🔍</div>ES|QL generation and syntax correctness</div>
+          <div class="dep-item"><div class="dep-icon">🤖</div>LLM behaviour and consistency</div>
+          <div class="dep-item"><div class="dep-icon">✍️</div>User prompt quality and specificity</div>
+          <div class="dep-item"><div class="dep-icon">💾</div>Context budget management</div>
+          <div class="dep-item"><div class="dep-icon">🎨</div>App-specific UX judgement</div>
+        </div>
+      </div>
+      <div>
+        <h3 style="margin-bottom:12px;">Current Challenges</h3>
+        <div class="dep-list">
+          <div class="dep-item" style="border-color:rgba(240,78,152,0.2)"><div class="dep-icon">💸</div>Generation is expensive in tokens and time</div>
+          <div class="dep-item" style="border-color:rgba(240,78,152,0.2)"><div class="dep-icon">🎯</div>Skill routing — a single vis request must not trigger full dashboard generation</div>
+          <div class="dep-item" style="border-color:rgba(240,78,152,0.2)"><div class="dep-icon">⚠️</div>Existing dashboard edits can be confusing for users</div>
+          <div class="dep-item" style="border-color:rgba(240,78,152,0.2)"><div class="dep-icon">🖼️</div>Injecting UI (visualizations) into the agent context</div>
+          <div class="dep-item" style="border-color:rgba(240,78,152,0.2)"><div class="dep-icon">🔒</div>Non-ES|QL / legacy panels cannot be edited directly</div>
+          <div class="dep-item" style="border-color:rgba(240,78,152,0.2)"><div class="dep-icon">🔄</div>Save/edit lifecycle across chat, canvas, and Dashboard app needs product work</div>
+          <div class="dep-item" style="border-color:rgba(240,78,152,0.2)"><div class="dep-icon">📏</div>Quality is more than "the agent produced something"</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SLIDE 7 — WHAT'S NEXT
+  ══════════════════════════════════════ -->
+  <div class="slide" id="s7">
+    <div class="slide-header">
+      <div class="eyebrow">06 · Roadmap</div>
+      <h2>What's Next</h2>
+    </div>
+    <div class="roadmap-grid">
+      <div class="roadmap-card">
+        <div class="roadmap-label">Cost</div>
+        <div class="roadmap-items">
+          <div class="roadmap-item">Reduce token consumption per dashboard</div>
+          <div class="roadmap-item">Improve end-to-end latency</div>
+        </div>
+      </div>
+      <div class="roadmap-card">
+        <div class="roadmap-label">UX</div>
+        <div class="roadmap-items">
+          <div class="roadmap-item">Dashboard preview improvements in chat</div>
+          <div class="roadmap-item">Inject visualizations from dashboards into agent context</div>
+        </div>
+      </div>
+      <div class="roadmap-card">
+        <div class="roadmap-label">Quality</div>
+        <div class="roadmap-items">
+          <div class="roadmap-item">Visual and layout evals</div>
+          <div class="roadmap-item">Agent self-correcting behaviour for dashboards</div>
+        </div>
+      </div>
+      <div class="roadmap-card">
+        <div class="roadmap-label">Architecture</div>
+        <div class="roadmap-items">
+          <div class="roadmap-item">Skill unification for Agent Builder and 3rd-party integrations</div>
+        </div>
+      </div>
+      <div class="roadmap-card">
+        <div class="roadmap-label">Research</div>
+        <div class="roadmap-items">
+          <div class="roadmap-item">Subagents for validation and critique</div>
+          <div class="roadmap-item">Subagent for layout review</div>
+        </div>
+      </div>
+      <div class="roadmap-card">
+        <div class="roadmap-label">New Capabilities</div>
+        <div class="roadmap-items">
+          <div class="roadmap-item">Additional panel types</div>
+          <div class="roadmap-item">Full feature parity with Dashboard UI</div>
+        </div>
+      </div>
+    </div>
+    <div class="outro">
+      Dashboards exercise nearly every capability future Kibana agents will need —<br>
+      making them the ideal proving ground for the <span class="accent">Agent Builder framework</span>.
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- Slide number display -->
+<div class="slide-num" id="slideNum">01 / 07</div>
+
+<!-- Nav -->
+<div class="nav" id="nav"></div>
+
+<script>
+  const TOTAL = 7;
+  let current = 1;
+
+  // ── Generate nav dots + buttons ──
+  const nav = document.getElementById('nav');
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'nav-btn';
+  prevBtn.innerHTML = '←';
+  prevBtn.onclick = () => go(current - 1);
+  nav.appendChild(prevBtn);
+
+  for (let i = 1; i <= TOTAL; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'nav-dot';
+    dot.onclick = () => go(i);
+    dot.id = `dot${i}`;
+    nav.appendChild(dot);
+  }
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'nav-btn';
+  nextBtn.innerHTML = '→';
+  nextBtn.onclick = () => go(current + 1);
+  nav.appendChild(nextBtn);
+
+  function go(n) {
+    if (n < 1 || n > TOTAL) return;
+    document.getElementById(`s${current}`)?.classList.remove('active');
+    document.getElementById(`dot${current}`)?.classList.remove('active');
+    current = n;
+    document.getElementById(`s${current}`)?.classList.add('active');
+    document.getElementById(`dot${current}`)?.classList.add('active');
+    document.getElementById('slideNum').textContent = String(current).padStart(2,'0') + ' / ' + String(TOTAL).padStart(2,'0');
+    onSlideEnter(current);
+  }
+
+  // ── Keyboard ──
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(current + 1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') go(current - 1);
+  });
+
+  // ── Slide 1: log stream ──
+  function buildLogStream() {
+    const container = document.getElementById('logStream');
+    const lines = [
+      '[INFO ] index=logs-* shards=5 docs=2847291',
+      '[DEBUG] esql generate → FROM logs-* | STATS count() BY host',
+      '[INFO ] lens config: xy chart, xAxis=@timestamp, yAxis=count',
+      '[DEBUG] attachment v1 created id=dash_a8f2c1',
+      '[INFO ] panel "p95 latency" generated in 312ms',
+      '[DEBUG] manage_dashboard op=add_section panels=3',
+      '[INFO ] vis generation parallel batch size=4',
+      '[DEBUG] FROM metrics-* | WHERE event.outcome == "failure"',
+      '[INFO ] renderCanvasContent hook → dashboard app',
+      '[DEBUG] attachment updated → v2 layout=kpis_top',
+      '[INFO ] skill routing → dashboard (confidence=0.91)',
+      '[DEBUG] index mapping fields=47 relevant=12',
+      '[INFO ] lens config: metric chart, value=error_rate',
+      '[DEBUG] context budget used=4821 tokens',
+      '[INFO ] eval: skill_routing PASS | artifact_created PASS',
+    ];
+    const doubled = [...lines, ...lines];
+    const html = doubled.map(l => `<div class="log-line">${l}</div>`).join('');
+    container.innerHTML = `<div style="position:absolute;top:0;left:5%;right:5%">${html}</div>`;
+  }
+  buildLogStream();
+
+  // ── Slide 2: animated flow steps ──
+  let flowAnimated = false;
+  function animateFlow() {
+    if (flowAnimated) return;
+    flowAnimated = true;
+    const steps = document.querySelectorAll('.flow-step');
+    steps.forEach((s, i) => {
+      setTimeout(() => s.classList.add('visible'), i * 200);
+    });
+  }
+
+  // ── On slide enter hooks ──
+  function onSlideEnter(n) {
+    if (n === 2) animateFlow();
+  }
+
+  // ── Init ──
+  go(1);
+</script>
+</body>
+</html>
